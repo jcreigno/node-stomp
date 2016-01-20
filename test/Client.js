@@ -491,20 +491,16 @@ describe('Client', function() {
                 var id = frame.headers.id;
                 
                 beforeSendResponse();
-                
-                server.sendFrame('MESSAGE', {
-                    'subscription': id,
-                    'message-id': 1,
-                    'destination': '/test',
-                    'content-type': 'text/plain'
-                }).end('hello');
-                
-                server.sendFrame('MESSAGE', {
-                    'subscription': id,
-                    'message-id': 2,
-                    'destination': '/test',
-                    'content-type': 'text/plain'
-                }).end('hello');
+                var i;
+                for (i = 0; i < 12; i++) {
+                    server.sendFrame('MESSAGE', {
+                        'subscription': id,
+                        'message-id': i + 1,
+                        'destination': '/test',
+                        'content-type': 'text/plain'
+                    }).end('hello');
+                }
+
             };
             
             var acks = [];
@@ -514,16 +510,9 @@ describe('Client', function() {
                 acks.push(frame.headers['message-id']);
                 
                 beforeSendResponse();
-                
-                switch(acks.length) {
-                    case 1:
-                        assert(acks[0] == 1);
-                        break;
-                    case 2:
-                        assert(acks[1] == 2);
-                        done();
-                        break;
-                    default: assert(false);
+                assert.equal(acks[acks.length - 1], acks.length);
+                if (acks.length == 12) {
+                    done();
                 }
             };
             
@@ -537,7 +526,9 @@ describe('Client', function() {
                     var writable = new BufferWritable(new Buffer(26));
                     
                     message.on('end', function() {
-                        message.ack();
+                        message.ack(function() {
+                            //console.log('ack');
+                        });
                     });
                     
                     message.pipe(writable);
